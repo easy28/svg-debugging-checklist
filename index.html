@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Why Is My SVG Blank or Broken? The SVG Debugging Checklist (2026)</title>
+<meta name="description" content="A symptom-to-fix checklist for SVGs that render blank, blurry, oversized, or not at all — including the 8 defects behind almost every broken AI-generated SVG. All fixes are free and run in your browser.">
+<style>
+  :root { --ink:#1a1d23; --mut:#5b6472; --line:#e4e7ec; --bg:#fafbfc; --acc:#4f46e5; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.65 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  .wrap { max-width:820px; margin:0 auto; padding:48px 20px 80px; }
+  h1 { font-size:2rem; line-height:1.2; margin:0 0 12px; letter-spacing:-.02em; }
+  h2 { font-size:1.35rem; margin:48px 0 8px; letter-spacing:-.01em; }
+  h3 { font-size:1.02rem; margin:26px 0 6px; }
+  p { margin:10px 0; color:#2c333d; }
+  .lede { font-size:1.1rem; color:var(--mut); }
+  .toc { background:#fff; border:1px solid var(--line); border-radius:12px; padding:18px 24px; margin:28px 0; }
+  .toc ol { margin:8px 0 2px; padding-left:20px; }
+  .toc li { margin:4px 0; }
+  .sym { background:#fff; border:1px solid var(--line); border-left:4px solid var(--acc); border-radius:12px; padding:18px 22px; margin:18px 0; }
+  .sym .verdict { color:var(--mut); }
+  code { background:#eef0f4; border-radius:5px; padding:1px 6px; font:0.88em/1.5 ui-monospace,Consolas,Menlo,monospace; }
+  a { color:var(--acc); }
+  ul { padding-left:22px; } li { margin:5px 0; }
+  footer { margin-top:56px; padding-top:20px; border-top:1px solid var(--line); color:var(--mut); font-size:.9rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Why Is My SVG Blank or Broken?</h1>
+<p class="lede">A symptom &rarr; cause &rarr; fix checklist for SVG files that render empty, throw errors, come out blurry, or won't open at all — including the eight defects behind almost every broken AI-generated SVG. Every fix below is free, needs no account, and runs entirely in your browser.</p>
+
+<div class="toc">
+<strong>Jump to your symptom</strong>
+<ol>
+  <li><a href="#blank">The SVG renders as a blank rectangle</a></li>
+  <li><a href="#ai">An AI (ChatGPT / Claude / Gemini) generated it and nothing shows</a></li>
+  <li><a href="#wont-open">The file won't open at all — parser error or refuses to load</a></li>
+  <li><a href="#huge">The file is huge and slow</a></li>
+  <li><a href="#blurry">It exports blurry or pixelated to PNG</a></li>
+  <li><a href="#fonts">Text renders in the wrong font or disappears on other machines</a></li>
+  <li><a href="#convert">You need it as PNG / ICO / React / DXF / G-code and the export is wrong</a></li>
+  <li><a href="#editing">You need to edit it but don't own Illustrator or Inkscape</a></li>
+</ol>
+</div>
+
+<h2 id="blank">1. The SVG renders as a blank rectangle</h2>
+<div class="sym">
+<p>The file opens without any error, but the canvas is empty. In our experience this comes down to five causes, in order of likelihood:</p>
+<h3>Everything is <code>fill="none"</code></h3>
+<p>The shapes exist and parse, but every one is styled invisible. This one fools people the most because the SVG technically "works". Fix: open it in a <a href="https://svgeditor.dev/">browser-based SVG editor</a>, select all, and set a real fill or stroke — or run it through <a href="https://svgeditor.dev/svg-repair">SVG Repair</a>, which detects invisible shapes and makes them visible automatically.</p>
+<h3>Shapes are drawn outside the viewBox</h3>
+<p>The markup draws at <code>x="150"</code> while the viewBox says <code>0 0 24 24</code> — the artwork is real, it's just off-canvas. Look for suspicious <code>transform="translate(...)"</code> values. Fix: expand the canvas to fit the actual drawing — <a href="https://svgeditor.dev/svg-repair">the repair tool does this for you</a> and reports what it moved.</p>
+<h3>Missing or invented viewBox</h3>
+<p>No <code>viewBox</code>, and the browser doesn't know which part of the coordinate system to show. Fix: add a viewBox that matches the coordinate range you actually draw in.</p>
+<h3>NaN or Infinity coordinates</h3>
+<p><code>d="M 10 10 L NaN 50"</code> is syntactically present and renders as nothing. This shows up constantly in generated and hand-converted files. Fix: <a href="https://svgeditor.dev/svg-repair">run the repair pass</a>, which zeroes out non-numeric coordinates and tells you where they were.</p>
+<h3>CSS classes that don't exist in the file</h3>
+<p>The SVG references <code>class="primary"</code> styling that lived in the page it was exported from. Fix: inline the styles, or restyle in the <a href="https://svgeditor.dev/">visual editor</a> where you can see fills and strokes per shape.</p>
+<p class="verdict">Not sure which one you have? <a href="https://svgeditor.dev/svg-preview">Preview the SVG on different backgrounds</a> first — artwork that is white-on-transparent shows up instantly on a black checkerboard.</p>
+</div>
+
+<h2 id="ai">2. An AI generated it and nothing shows</h2>
+<div class="sym">
+<p>Language models produce SVG token by token, plausibly — they pattern-match on millions of examples without running an XML validator or a geometry engine. The failure modes are so consistent they can be listed. The eight defects behind almost every broken AI-generated SVG:</p>
+<ul>
+<li><strong>Missing <code>xmlns</code></strong> — the #1 killer. Without <code>xmlns="http://www.w3.org/2000/svg"</code> the browser treats the file as generic XML and may refuse to render it standalone or inside an <code>&lt;img&gt;</code> tag.</li>
+<li><strong>Missing or invented viewBox</strong> — see symptom 1.</li>
+<li><strong>Shapes translated out of view</strong> — decorative transform guesswork puts the artwork just outside the frame.</li>
+<li><strong>A raw <code>&amp;</code> in a label</strong> — SVG is strict XML; one unescaped ampersand invalidates the entire document.</li>
+<li><strong>NaN and Infinity coordinates</strong> — models do arithmetic in public.</li>
+<li><strong>Unclosed or misnested tags</strong> — XML parsers are all-or-nothing; one structural slip and nothing renders.</li>
+<li><strong>Chat prose and code fences</strong> — "Sure! Here's your logo:" and <code>```svg</code> pasted into the file. Browsers don't strip any of it for you.</li>
+<li><strong>Everything <code>fill="none"</code></strong> — the sneakiest one; the file "works" and shows nothing.</li>
+</ul>
+<p>Fix: paste the raw chat output — prose and fences and all — into <a href="https://svgeditor.dev/svg-repair">SVG Repair</a>. It extracts the real markup, repairs the XML, adds the missing attributes, and shows a before/after preview so you can see the fix landed. It also strips <code>&lt;script&gt;</code> tags and event handlers, which AI SVGs occasionally smuggle in and which become a live XSS vector the moment you inline them. The full write-up with prompt tips to prevent it at the source: <a href="https://svgeditor.dev/blog/ai-generated-svg-not-rendering">Why your AI-generated SVG doesn't render</a>.</p>
+</div>
+
+<h2 id="wont-open">3. The file won't open at all</h2>
+<div class="sym">
+<p>A parser error, a "could not load" in the browser, or your design tool rejecting the file. Almost always one of:</p>
+<ul>
+<li><strong>XML syntax errors</strong> — unescaped <code>&amp;</code>, a missing quote, an unclosed tag. One error kills the whole document. Fix: <a href="https://svgeditor.dev/svg-repair">the repair pass</a> itemizes every defect it finds and fixes.</li>
+<li><strong>Wrong file extension</strong> — it's actually PNG or JPEG bytes with an <code>.svg</code> name. Fix: <a href="https://svgeditor.dev/png-to-svg">trace the raster to a real vector</a> instead.</li>
+<li><strong>Broken zip-based variant</strong> — some tools emit compressed SVGZ. Fix: decompress, then work with plain SVG.</li>
+</ul>
+</div>
+
+<h2 id="huge">4. The file is huge and slow</h2>
+<div class="sym">
+<p>Multi-megabyte SVGs usually carry editor metadata, redundant decimal precision, empty groups, and comments. Fixes, cheapest first:</p>
+<ul>
+<li>Run it through the <a href="https://svgeditor.dev/svg-optimizer">SVG optimizer</a> — generated and exported files commonly shave 30–60% with no visible loss.</li>
+<li>If it came from a raster trace, re-trace with fewer colors: <a href="https://svgeditor.dev/png-to-svg">PNG to SVG converter</a>.</li>
+<li>Compress before shipping: <a href="https://svgeditor.dev/tutorials/how-to-compress-svg-files">how to compress SVG files</a> walks the full stack (optimizer, minify, server compression).</li>
+<li>Inline-critical version: <a href="https://svgeditor.dev/svg-to-minified">minify SVG</a> for the smallest embeddable markup, and <a href="https://svgeditor.dev/blog/reduce-svg-file-size">reduce SVG file size</a> explains what actually moves the needle.</li>
+</ul>
+</div>
+
+<h2 id="blurry">5. Exports to PNG come out blurry</h2>
+<div class="sym">
+<p>Rasterizing an SVG at its CSS display size gives you a handful of real pixels. You need to export at a multiple of the display size. Fix: export at 2×–4× with the <a href="https://svgeditor.dev/svg-to-png">SVG to PNG converter</a> — the full diagnosis is in <a href="https://svgeditor.dev/blog/svg-to-png-without-blur">how to convert SVG to PNG without blur</a>. For a whole icon set at once, the <a href="https://svgeditor.dev/tutorials/batch-convert-svg-to-png">batch SVG to PNG tutorial</a> covers folders of files in one pass — the <a href="https://svgeditor.dev/batch">batch tool</a> handles hundreds of files without uploading them anywhere.</p>
+</div>
+
+<h2 id="fonts">6. Text disappears or renders in the wrong font on other machines</h2>
+<div class="sym">
+<p>If the SVG references a font that isn't installed, every machine renders it differently — or drops the text entirely. This bites hardest in laser cutting, engraving, and plotting, where the machine follows glyph outlines, not fonts. Fix: convert the text to outlined paths with the <a href="https://svgeditor.dev/">Text to Path tool in the editor</a> so the file renders identically everywhere — the reasoning and workflow are in <a href="https://svgeditor.dev/blog/svg-text-to-path">SVG text to path</a>. Then send the outlined file straight to the machine: <a href="https://svgeditor.dev/svg-to-gcode">SVG to G-code</a> or <a href="https://svgeditor.dev/svg-to-dxf">SVG to DXF</a>.</p>
+</div>
+
+<h2 id="convert">7. You need it in another format and the export is wrong</h2>
+<div class="sym">
+<p>Pick the destination, not the converter:</p>
+<ul>
+<li><strong>Images:</strong> <a href="https://svgeditor.dev/svg-to-png">PNG</a>, <a href="https://svgeditor.dev/svg-to-webp">WebP</a>, <a href="https://svgeditor.dev/svg-to-jpeg">JPEG</a>, <a href="https://svgeditor.dev/svg-to-pdf">PDF</a>, or <a href="https://svgeditor.dev/svg-to-ico">ICO for favicons</a>.</li>
+<li><strong>Components:</strong> <a href="https://svgeditor.dev/svg-to-react">React</a>, <a href="https://svgeditor.dev/svg-to-react-native">React Native</a>, <a href="https://svgeditor.dev/svg-to-vue">Vue</a>, <a href="https://svgeditor.dev/svg-to-svelte">Svelte</a>, <a href="https://svgeditor.dev/svg-to-flutter">Flutter</a>, <a href="https://svgeditor.dev/svg-to-swiftui">SwiftUI</a>, <a href="https://svgeditor.dev/svg-to-compose">Jetpack Compose</a>.</li>
+<li><strong>Code:</strong> <a href="https://svgeditor.dev/svg-to-canvas">HTML Canvas</a>, <a href="https://svgeditor.dev/svg-to-python">Python</a>, <a href="https://svgeditor.dev/svg-to-php">PHP</a>, <a href="https://svgeditor.dev/svg-to-ruby">Ruby</a>, <a href="https://svgeditor.dev/svg-to-csharp">C#</a>.</li>
+<li><strong>Embedding:</strong> <a href="https://svgeditor.dev/svg-to-base64">base64 data URI</a>, <a href="https://svgeditor.dev/svg-to-url">URL-encoded</a>, <a href="https://svgeditor.dev/svg-to-utf8">UTF-8</a> — and <a href="https://svgeditor.dev/blog/embed-svg-in-html">the three ways to embed SVG in HTML</a> explains which one to pick and why.</li>
+<li><strong>Machines:</strong> <a href="https://svgeditor.dev/svg-to-gcode">G-code</a> and <a href="https://svgeditor.dev/svg-to-dxf">DXF</a>, after converting text to paths (symptom 6).</li>
+</ul>
+<p>Choosing between formats in the first place? <a href="https://svgeditor.dev/blog/svg-vs-png">SVG vs PNG</a> breaks down when vectors actually win.</p>
+</div>
+
+<h2 id="editing">8. You need to edit it but don't own desktop software</h2>
+<div class="sym">
+<p>The common answer is "install Inkscape" — but for most edits you don't need to. A <a href="https://svgeditor.dev/">free online SVG editor</a> that runs entirely client-side lets you select, move, rotate, scale, group and ungroup shapes, edit text and paths, change fills and strokes, and inspect the document tree directly in the browser tab — no account, no upload, no watermark. The case for editing visually before touching code: <a href="https://svgeditor.dev/blog/visual-svg-editing">visual SVG editing</a>. If what you actually have is a raster logo, start one step earlier with <a href="https://svgeditor.dev/blog/convert-png-to-svg">how to convert PNG to SVG</a>.</p>
+</div>
+
+<footer>
+<p>Maintained as a free reference. All tools mentioned run 100% in your browser at <a href="https://svgeditor.dev/">svgeditor.dev</a> — nothing is uploaded. Last reviewed November 2026.</p>
+</footer>
+</div>
+</body>
+</html>
